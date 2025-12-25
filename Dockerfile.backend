@@ -1,0 +1,45 @@
+# Use the official Node.js runtime as the base image
+FROM node:18-alpine AS base
+
+# Install pnpm globally
+RUN npm install -g pnpm
+
+# Set the working directory
+WORKDIR /app
+
+# Copy package files
+COPY backend/package*.json ./
+
+# Install dependencies using pnpm
+RUN pnpm install
+
+# Copy the rest of the application code
+COPY backend/ .
+
+# Build the NestJS application
+RUN pnpm run build
+
+# Production stage
+FROM node:18-alpine AS production
+
+# Install pnpm globally
+RUN npm install -g pnpm
+
+# Set the working directory
+WORKDIR /app
+
+# Copy package files
+COPY backend/package*.json ./
+
+# Install only production dependencies
+RUN pnpm install --prod
+
+# Copy the build output from the previous stage
+COPY --from=base /app/dist ./dist
+COPY --from=base /app/node_modules ./node_modules
+
+# Expose port 3000
+EXPOSE 3000
+
+# Start the application
+CMD ["node", "dist/main"]
